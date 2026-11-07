@@ -1,5 +1,8 @@
 #include <cstdio>
 #include "image.hpp"
+#include "constants.hpp"
+#include "cpu_reference.hpp"
+#include "verify.hpp"
 
 __global__ void grayscaleKernel(const uint8_t* rgb, uint8_t* gray, int width, int height) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -15,7 +18,7 @@ __global__ void grayscaleKernel(const uint8_t* rgb, uint8_t* gray, int width, in
     int r = rgb[rgbIdx];
     int g = rgb[rgbIdx + 1];
     int b = rgb[rgbIdx + 2];
-    int grayValue = 0.21 * r + 0.72 * g + 0.07 * b;
+    int grayValue = R_WEIGHT * r + G_WEIGHT * g + B_WEIGHT * b;
 
     gray[grayIdx] = static_cast<uint8_t>(grayValue);
 }
@@ -63,6 +66,13 @@ int main() {
     int gidx15 = 0 * width + 15;
     printf("Pixel (15,0): RGB=(%d,%d,%d) -> Gray=%d\n",
            hostRgb.data[idx15], hostRgb.data[idx15 + 1], hostRgb.data[idx15 + 2], hostGray.data[gidx15]);
+
+    HostImage cpuGray(width, height, 1);
+    toGrayScale(hostRgb, cpuGray);
+
+    int diff = maxAbsDiff(hostGray, cpuGray);
+    printf("Max abs diff (CUDA vs CPU), full %dx%d image: %d %s\n",
+           width, height, diff, diff <= 1 ? "(PASS)" : "(FAIL)");
 
     return 0;
 }
