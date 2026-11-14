@@ -1,2 +1,49 @@
-#temporary documents
-docs/
+# Build output (CMake, or ad-hoc nvcc builds — see note below)
+build/
+cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+compile_commands.json
+install_manifest.txt
+
+# Compiled binaries / objects
+*.o
+*.obj
+*.exe
+*.out
+*.a
+*.lib
+*.so
+*.dll
+*.exp
+*.pdb
+
+# CUDA intermediate/device artifacts
+*.ptx
+*.cubin
+*.fatbin
+
+# Nsight profiling captures — large binary blobs, regenerate on demand.
+# If a specific capture is worth keeping as evidence for an experiments.md
+# entry, `git add -f` that one file rather than removing this rule.
+*.nsys-rep
+*.ncu-rep
+*.qdrep
+*.sqlite
+
+# Editor / IDE
+.vscode/
+.idea/
+
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# Jupyter / Colab
+.ipynb_checkpoints/
+
+# Logs
+*.log
+

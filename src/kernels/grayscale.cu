@@ -3,6 +3,7 @@
 #include "constants.hpp"
 #include "cpu_reference.hpp"
 #include "verify.hpp"
+#include "benchmark.hpp"
 
 __global__ void grayscaleKernel(const uint8_t* rgb, uint8_t* gray, int width, int height) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -32,6 +33,46 @@ void makeSyntheticImage(HostImage& img) {
             img.data[idx + 2] = 128;
         }
     }
+}
+
+void runBenchmark(int width, int height) {
+    HostImage hostRgb(width, height, 3);
+    makeSyntheticImage(hostRgb);
+
+    DeviceImage deviceRgb(width, height, 3);
+    DeviceImage deviceGray(width, height, 1);
+    copyToDevice(hostRgb, deviceRgb);
+
+    dim3 blockDim(16, 16);
+    dim3 gridDim((width + blockDim.x - 1) / blockDim.x, (height + blockDim.y - 1) / blockDim.y);
+
+    GpuTimer gpuTimer;
+    gpuTimer.start();
+    grayscaleKernel<<<gridDim, blockDim>>>(deviceRgb.data, deviceGray.data, width, height);
+    gpuTimer.stop();
+
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        fprintf(stderr, "Kernel launch failed: %s\n", cudaGetErrorString(err));
+        return;
+    }
+
+    HostImage cudaGray(width, height, 1);
+    copyToHost(deviceGray, cudaGray);
+
+    HostImage cpuGray(width, height, 1);
+    CpuTimer cpuTimer;
+    cpuTimer.start();
+    toGrayScale(hostRgb, cpuGray);
+    double cpuMs = cpuTimer.elapsedMs();
+
+    int diff = maxAbsDiff(cudaGray, cpuGray);
+
+    printf("\n[Benchmark %dx%d]\n", width, height);
+    printf("  CPU:  %.4f ms\n", cpuMs);
+    printf("  CUDA: %.4f ms (kernel only)\n", gpuTimer.elapsedMs());
+    printf("  Speedup (CPU/CUDA): %.2fx\n", cpuMs / gpuTimer.elapsedMs());
+    printf("  Correctness: max abs diff %d %s\n", diff, diff <= 1 ? "(PASS)" : "(FAIL)");
 }
 
 int main() {
@@ -73,6 +114,9 @@ int main() {
     int diff = maxAbsDiff(hostGray, cpuGray);
     printf("Max abs diff (CUDA vs CPU), full %dx%d image: %d %s\n",
            width, height, diff, diff <= 1 ? "(PASS)" : "(FAIL)");
+
+    runBenchmark(16, 16);
+    runBenchmark(1920, 1080);
 
     return 0;
 }
