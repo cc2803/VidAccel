@@ -14,11 +14,30 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Catch2 is fetched and built from source (CMakeLists.txt's FetchContent
+      # call) on a clean checkout; that's most of this job's time, and it's
+      # identical on every run keyed by CMakeLists.txt, so cache it.
+      - name: Cache Catch2 build
+        uses: actions/cache@v4
+        with:
+          path: build/_deps
+          key: ${{ runner.os }}-catch2-${{ hashFiles('CMakeLists.txt', 'tests/CMakeLists.txt') }}
+
       - name: Configure
         run: cmake -B build -S .
 
       - name: Build
-        run: cmake --build build
+        run: cmake --build build --parallel
 
+      # --output-junit's path is resolved relative to --test-dir, not the
+      # working directory, so this lands at build/test-results.xml.
       - name: Test
-        run: ctest --test-dir build --output-on-failure
+        run: ctest --test-dir build --output-on-failure --output-junit test-results.xml
+
+      - name: Publish test results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: VidAccel unit tests
+          path: build/test-results.xml
+          reporter: java-junit
