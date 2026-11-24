@@ -1,4 +1,4 @@
-#include "image.hpp"
+#include "host_image.hpp"
 #include "constants.hpp"
 #include "math_utils.hpp"
 #include <cassert>

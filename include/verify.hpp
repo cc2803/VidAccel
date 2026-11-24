@@ -1,6 +1,6 @@
 #pragma once
 
-#include "image.hpp"
+#include "host_image.hpp"
 #include <cassert>
 #include <cstdlib>
 #include <algorithm>

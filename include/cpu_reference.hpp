@@ -1,6 +1,6 @@
 #pragma once
 
-#include "image.hpp"
+#include "host_image.hpp"
 
 void toGrayScale(const HostImage& rgb, HostImage& gray);
 
